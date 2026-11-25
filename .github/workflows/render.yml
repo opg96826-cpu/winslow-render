@@ -1,0 +1,98 @@
+name: Render Winslow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    name: Render chunk ${{ matrix.chunk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxcb1 libxkbcommon0 libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libatspi2.0-0t64 libnss3 libnspr4 libdbus-1-3 ffmpeg
+
+      - name: Cache Remotion browser
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.remotion
+          key: remotion-browser-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure Remotion browser
+        run: npx remotion browser ensure
+
+      - name: Compute frame range
+        id: range
+        run: |
+          CHUNK=${{ matrix.chunk }}
+          if [ "$CHUNK" -lt 5 ]; then
+            START=$((CHUNK * 186))
+            END=$((START + 185))
+          else
+            START=$((930 + (CHUNK - 5) * 185))
+            END=$((START + 184))
+          fi
+          echo "start=$START" >> "$GITHUB_OUTPUT"
+          echo "end=$END" >> "$GITHUB_OUTPUT"
+          echo "Chunk $CHUNK: frames $START-$END"
+
+      - name: Render chunk
+        run: npx remotion render Winslow chunk-${{ matrix.chunk }}.mp4 --frames=${{ steps.range.outputs.start }}-${{ steps.range.outputs.end }} --gl=swangle --image-format=jpeg --concurrency=2
+
+      - name: Upload chunk
+        uses: actions/upload-artifact@v4
+        with:
+          name: chunk-${{ matrix.chunk }}
+          path: chunk-${{ matrix.chunk }}.mp4
+          if-no-files-found: error
+
+  stitch_video:
+    name: Stitch final video
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Download all chunks
+        uses: actions/download-artifact@v4
+        with:
+          pattern: chunk-*
+          merge-multiple: true
+          path: chunks
+
+      - name: Build concat list and stitch
+        run: |
+          cd chunks
+          for i in 0 1 2 3 4 5 6 7 8 9; do echo "file 'chunk-$i.mp4'" >> list.txt; done
+          cat list.txt
+          ffmpeg -f concat -safe 0 -i list.txt -c copy final.mp4
+          ls -la final.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of default=noprint_wrappers=1 final.mp4
+
+      - name: Upload final video
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-video
+          path: chunks/final.mp4
+          if-no-files-found: error
