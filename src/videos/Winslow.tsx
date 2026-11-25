@@ -525,6 +525,7 @@ const S8 = ({ t, f }: Ctx) => {
 /* ================= MAIN COMPOSITION ================= */
 export const Winslow: React.FC = () => (
   <>
+    <Audio src={staticFile("mix.wav")} />
     <Scene start={CUTS[0]} end={CUTS[1]} first bg="#1a120a">{c => <S1 {...c} />}</Scene>
     <Scene start={CUTS[1]} end={CUTS[2]} bg="#1a120a" trans="zoom">{c => <S2 {...c} />}</Scene>
     <Scene start={CUTS[2]} end={CUTS[3]} bg="#0e0e14">{c => <S3 {...c} />}</Scene>
