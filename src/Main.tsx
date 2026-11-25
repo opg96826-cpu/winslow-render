@@ -55,10 +55,9 @@ export const Main: React.FC = () => {
   const f = useCurrentFrame(); void f; void seg;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      {/* <Audio src={staticFile("mix.wav")} />  <- enable once public/mix.wav exists */}
+      <Audio src={staticFile("mix.wav")} />
       <Scene first start={0} end={2} bg="#925b32">{(c) => <Demo {...c} />}</Scene>
       <Captions />
     </AbsoluteFill>
   );
 };
-void Audio; void staticFile;
