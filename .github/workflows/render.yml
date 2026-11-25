@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
 
@@ -42,12 +42,12 @@ jobs:
         id: range
         run: |
           CHUNK=${{ matrix.chunk }}
-          if [ "$CHUNK" -lt 5 ]; then
-            START=$((CHUNK * 186))
-            END=$((START + 185))
+          if [ "$CHUNK" -lt 15 ]; then
+            START=$((CHUNK * 93))
+            END=$((START + 92))
           else
-            START=$((930 + (CHUNK - 5) * 185))
-            END=$((START + 184))
+            START=$((1395 + (CHUNK - 15) * 92))
+            END=$((START + 91))
           fi
           echo "start=$START" >> "$GITHUB_OUTPUT"
           echo "end=$END" >> "$GITHUB_OUTPUT"
@@ -84,7 +84,7 @@ jobs:
       - name: Build concat list and stitch
         run: |
           cd chunks
-          for i in 0 1 2 3 4 5 6 7 8 9; do echo "file 'chunk-$i.mp4'" >> list.txt; done
+          for i in $(seq 0 19); do echo "file 'chunk-$i.mp4'" >> list.txt; done
           cat list.txt
           ffmpeg -f concat -safe 0 -i list.txt -c copy final.mp4
           ls -la final.mp4
